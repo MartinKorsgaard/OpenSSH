@@ -16,8 +16,6 @@ while ($true)
 
     $startTime = Get-Date
 
-    write-host "Setting next run time to $startTime"
-
     foreach ($event in $failedEvents)
     {
         $event
