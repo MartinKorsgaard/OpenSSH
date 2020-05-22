@@ -55,7 +55,7 @@ while ($true)
                         write-host "Adding Firewall rule..."
                                         
                         #block
-                        New-NetFirewallRule -DisplayName $name -Name $ip -Direction Inbound -Action Block -RemoteAddress $ip
+                        $rule = New-NetFirewallRule -DisplayName $name -Name $ip -Direction Inbound -Action Block -RemoteAddress $ip
 
                         write-host "$ip is in list 1. Removing..."
                         write-host "$ip is in list 2. Removing..."
