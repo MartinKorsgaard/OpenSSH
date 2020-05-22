@@ -18,7 +18,7 @@ while ($true)
 
     foreach ($event in $failedEvents)
     {
-        $event
+        $event | format-list
 
         $ip = $event.Message.Split(" ")[8]
         write-host "Processing failed attempt by $ip..."
@@ -53,14 +53,14 @@ while ($true)
                         write-host "Adding Firewall rule..."
                                         
                         #block
-                        $rule = New-NetFirewallRule -DisplayName $name -Name $ip -Direction Inbound -Action Block -RemoteAddress $ip
-
-                        write-host "$ip is in list 1. Removing..."
-                        write-host "$ip is in list 2. Removing..."
+                        $rule = New-NetFirewallRule -DisplayName $name -Name $ip -Direction Inbound -Action Block -RemoteAddress $ip -Group "OpenSSH Protect"
 
                         # cleanup failed attempt lists
-                        $twoFailedAttempt.Remove($ip)
+                        write-host "$ip is in list 1. Removing..."
                         $oneFailedAttempt.Remove($ip)
+
+                        write-host "$ip is in list 2. Removing..."
+                        $twoFailedAttempt.Remove($ip)
                     }
 
                     $blocked.Add($ip)
