@@ -4,24 +4,29 @@ $oneFailedAttempt = [System.Collections.ArrayList]@()
 $twoFailedAttempt = [System.Collections.ArrayList]@()
 $blocked = [System.Collections.ArrayList]@()
 
+$regex = [regex] "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
+
 $startTime = (Get-WinEvent -LogName $log -MaxEvents 1).TimeCreated
 
 while ($true)
 {   
     Start-Sleep -seconds 300
 
-    write-host "Looking for failed events since $startTime"
-
-    $failedEvents = Get-WinEvent -LogName $log -MaxEvents 1000 | Where -Property Message -match Failed | Where -property TimeCreated -gt $startTime
+    $events = Get-WinEvent -LogName $log -MaxEvents 1000 | Where -property TimeCreated -gt $startTime
 
     $startTime = Get-Date
 
-    foreach ($event in $failedEvents)
+    $failed = $events | Where -Property Message -like "*Failed password for * from *" 
+
+    write-host "Looking for failed passwords since $startTime"
+
+    foreach ($event in $failed)
     {
         $event | format-list
 
-        $ip = $event.Message.Split(" ")[8]
-        write-host "Processing failed attempt by $ip..."
+        $ip = $regex.Matches($event.Message.Split(" ")) | %{ $_.value } | select -first 1
+
+        write-host "Processing failed password from $ip..."
         
         if ($blocked -contains $ip) # already blocked
         {
@@ -66,6 +71,33 @@ while ($true)
                     $blocked.Add($ip)
                 }
             }
+        }
+    }
+
+    $accepted = $events | Where -Property Message -like "*Accepted password for * from *"
+
+    write-host "Looking for accepted passwords since $startTime"
+
+    foreach ($event in $accepted)
+    {
+        $event | format-list
+
+        $ip = $regex.Matches($event.Message.Split(" ")) | %{ $_.value } | select -first 1
+
+        write-host "Processing accepted password from $ip..."
+
+        if ($oneFailedAttempt -contains $ip)
+        {
+            write-host "$ip is in list 1. Removing..."
+
+            $oneFailedAttempt.Remove($ip)
+        }
+
+        if ($twoFailedAttempt -contains $ip)
+        {
+            write-host "$ip is in list 2. Removing..."
+
+            $twoFailedAttempt.Remove($ip)
         }
     }
 }
