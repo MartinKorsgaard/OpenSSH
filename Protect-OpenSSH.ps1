@@ -6,24 +6,34 @@ $blocked = [System.Collections.ArrayList]@()
 
 $regex = [regex] "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
 
-$startTime = (Get-WinEvent -LogName $log -MaxEvents 1).TimeCreated
+# set start time to the newest log post and subtract 1 day
+$newStartTime = ((Get-WinEvent -LogName $log -MaxEvents 1).TimeCreated).AddDays(-1)
 
 while ($true)
 {   
+    # set actual start time   
+    $startTime = $newStartTime
+
+    # sleep 5 minutes
     Start-Sleep -seconds 300
 
+    # set new start time to be used in next cycle
+    $newStartTime = Get-Date
+
+    # get events based on start time
     $events = Get-WinEvent -LogName $log -MaxEvents 1000 | Where -property TimeCreated -gt $startTime
 
-    $startTime = Get-Date
-
+    # sort out the failed events
     $failed = $events | Where -Property Message -like "*Failed password for * from *" 
 
     write-host "Looking for failed passwords since $startTime"
 
+    # start processing failed events
     foreach ($event in $failed)
     {
         $event | format-list
 
+        # isolate ip from string
         $ip = $regex.Matches($event.Message.Split(" ")) | %{ $_.value } | select -first 1
 
         write-host "Processing failed password from $ip..."
@@ -74,14 +84,17 @@ while ($true)
         }
     }
 
+    # sort out accepted events
     $accepted = $events | Where -Property Message -like "*Accepted password for * from *"
 
     write-host "Looking for accepted passwords since $startTime"
 
+    # start processing accepted events
     foreach ($event in $accepted)
     {
         $event | format-list
 
+        # isolate ip address from string
         $ip = $regex.Matches($event.Message.Split(" ")) | %{ $_.value } | select -first 1
 
         write-host "Processing accepted password from $ip..."
