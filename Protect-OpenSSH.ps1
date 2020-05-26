@@ -1,3 +1,6 @@
+# This script monitors OpenSSH's log on Windows and if it finds 3 attempts to log in without the correct password 
+# it creates a firewall rule to block the remote IP
+
 $log = 'OpenSSH/Operational'
 
 $oneFailedAttempt = [System.Collections.ArrayList]@()
